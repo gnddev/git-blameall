@@ -3,7 +3,19 @@
 import sys
 import os
 import string
+import re
 
+Chunk_Header_Pat = re.compile('@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@')
+
+def parse_chunk_header(s):
+  orig_L, del_N, new_L, add_N = Chunk_Header_Pat.match(s).groups()
+  if del_N is None:
+    del_N = 1
+  if add_N is None:
+    add_N = 1
+    
+  return orig_L, del_N, new_L, add_N
+  
 def main():
   fn = sys.argv[1]
   revs = map(string.strip,os.popen('git-rev-list HEAD -- %s'%fn).readlines())
@@ -11,9 +23,12 @@ def main():
   revs.insert(0,'HEAD')
   
   for i in range(len(revs)-1):
-    os.system('git-diff %s %s %s'%(revs[i+1],revs[i],fn))
-  
-  print revs
+    print revs[i+1], revs[i]
+    for line in os.popen('git-diff -U0 %s %s %s'%(revs[i+1],revs[i],fn)):
+      print line,
+      if line.startswith('@@'):
+        print parse_chunk_header(line)
+    print 
   
 if __name__=='__main__':
   main()
