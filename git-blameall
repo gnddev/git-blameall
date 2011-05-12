@@ -7,6 +7,9 @@ import re
 
 Chunk_Header_Pat = re.compile('@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@')
 
+class struct:
+  pass
+  
 def parse_chunk_header(s):
   orig_L, del_N, new_L, add_N = Chunk_Header_Pat.match(s).groups()
   if del_N is None:
@@ -15,19 +18,37 @@ def parse_chunk_header(s):
     add_N = 1
     
   return orig_L, del_N, new_L, add_N
-  
+
+def get_initial_version(first_rev,fn):
+  lines = []
+  file_started_FL = False
+  for line in os.popen('git-show %s %s'%(first_rev,fn)):
+    if file_started_FL:
+      assert line[0]=='+',("don't recognize format",line)
+      lines.append(line[1:]) # take out the leading '+'
+    else:
+      if line.startswith('@@ -0,0 '):
+        file_started_FL=True
+  return lines
+    
 def main():
   fn = sys.argv[1]
+  
+  # get all revisions
   revs = map(string.strip,os.popen('git-rev-list HEAD -- %s'%fn).readlines())
-  #revs.append(revs[-1]+'^')
   revs.insert(0,'HEAD')
   
+  # initial version
+  print get_initial_version(revs[-1],fn)
+  sys.exit()
+  
+  # process all the revisions
   for i in range(len(revs)-1):
     print revs[i+1], revs[i]
     for line in os.popen('git-diff -U0 %s %s %s'%(revs[i+1],revs[i],fn)):
       print line,
       if line.startswith('@@'):
-        print parse_chunk_header(line)
+        orig_L, del_N, new_L, add_N = parse_chunk_header(line)
     print 
   
 if __name__=='__main__':
