@@ -17,7 +17,7 @@ def parse_chunk_header(s):
   if add_N is None:
     add_N = 1
     
-  return orig_L, del_N, new_L, add_N
+  return map(int,(orig_L, del_N, new_L, add_N))
 
 def get_initial_version(first_rev,fn):
   lines = []
@@ -41,7 +41,7 @@ def main():
   # initial version
   LINES=[]
   ALL_LINES=[]
-  for line in get_initial_version(revs[-1],fn)
+  for line in get_initial_version(revs[-1],fn):
     x = struct()
     x.text    = line
     x.rev_beg = revs[-1]
@@ -49,40 +49,52 @@ def main():
     ALL_LINES.append(x)  
   
   # process all the revisions
+  orig_L, del_N, new_L, add_N = 0,0,0,0
   for i in range(len(revs)-1):
-    for line in os.popen('git-diff -U0 %s %s %s'%(revs[i+1],revs[i],fn)):
+    cmd = 'git-diff -U0 %s %s %s'%(revs[i+1],revs[i],fn)
+    print '[cmd]',cmd
+    for line_no,line in enumerate(os.popen(cmd)):
+      if line_no<4:
+        # skip over the header
+        continue
+      print 'line',repr(line)
       if line.startswith('@@'):
         orig_L, del_N, new_L, add_N = parse_chunk_header(line)
+        print 'chunk',orig_L,del_N,new_L,add_N
         deleted_line = None # this keeps track of last deleted line in chunk
-        all_lines_ins_point = None
+        all_lines_ins_pt = None
       else:
+        # PROCESS DELETED LINES
         if del_N:
           assert line.startswith('-'),line
           deleted_line = LINES[new_L-1]
           deleted_line.rev_end = revs[i]
           del LINES[new_L-1]
           del_N -= 1
+        # PROCESS ADDED LINES
         else:
           assert del_N == 0, (del_N,"expecting to see all deleted line in diff chunk before any added lines")
           assert line.startswith('+'), ("can't parse this diff chunk, expecting added line, instead got this",line)
-          if all_lines_ins_point == None:
+          if all_lines_ins_pt == None:
             # figure out where in ALL_LINES we insert new lines
             if new_L == 0: # inserting in beginning file
-              all_lines_ins_point = 0
+              all_lines_ins_pt = 0
             else:
               if deleted_line == None:
                 # this chunk did not have any deleted lines, find the previous line
                 # so that we know where to add the new lines in ALL_LINES
                 deleted_line = LINES[new_L-2]
-              all_lines_ins_point = ALL_LINES.index(deleted_line)
+              all_lines_ins_pt = ALL_LINES.index(deleted_line)
           x = struct()
-          x.text = line
+          x.text = line[1:]
           x.rev_beg = revs[i]
           LINES.insert(new_L-1,x)
-          ALL_LINES.insert(all_lines_ins_point,x)
+          ALL_LINES.insert(all_lines_ins_pt,x)
           add_N -= 1
-            
         
+    print    
+    for line in ALL_LINES:
+      print ':',repr(line.text)
     print 
   
 if __name__=='__main__':
