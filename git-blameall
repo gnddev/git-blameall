@@ -39,6 +39,9 @@ def find_index(ALL_LINES,L):
     if ALL_LINES[i].endrev==None:       # line that has not been deleted
       L-=1
     i+=1
+  # ffwd through deleted lines
+  while i<len(ALL_LINES) and ALL_LINES[i].endrev<>None:
+    i+=1
   return i
   
 def find_next_alive(ALL_LINES,i):
@@ -48,11 +51,17 @@ def find_next_alive(ALL_LINES,i):
     i+=1
     
 def print_so_far(ALL_LINES):
+  #lastbegrev = None
   for line in ALL_LINES:
+    #if line.begrev == lastbegrev:
+    #  beg = '   ^    '
+    #else:
+    #  beg = line.begrev[:8]
+    #lastbegrev = line.begrev
     beg = line.begrev[:8]
     end = '    ' if line.endrev is None else line.endrev[:8]
       
-    print '%s %8s:'%(beg,end),line.text,
+    print '%8s %8s:'%(beg,end),line.text,
   print 
     
 def main():
