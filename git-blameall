@@ -50,18 +50,16 @@ def find_next_alive(ALL_LINES,i):
       return i
     i+=1
     
-def print_so_far(ALL_LINES):
-  #lastbegrev = None
+
+def print_so_far(ALL_LINES,revs):
+  head_rev = struct()
+  head_rev.hash = '        '
+  head_rev.date = '          '
+  head_rev.author = '        '
   for line in ALL_LINES:
-    #if line.begrev == lastbegrev:
-    #  beg = '   ^    '
-    #else:
-    #  beg = line.begrev[:8]
-    #lastbegrev = line.begrev
-    beg = line.begrev[:8]
-    end = '    ' if line.endrev is None else line.endrev[:8]
-      
-    print '%8s %8s:'%(beg,end),line.text,
+    beg = revs[line.begrev]
+    end = revs[line.endrev] if line.endrev is not None else head_rev
+    print '%s %s %s %s %s %s:'%(beg.hash[:8],end.hash[:8],beg.date,end.date,beg.author,end.author),line.text,
   print 
     
 def main():
@@ -69,27 +67,42 @@ def main():
   
   fn = sys.argv[1]
   
-  # get all revisions
-  revs = map(string.strip,os.popen('git-rev-list HEAD -- %s'%fn).readlines())
-  revs.insert(0,'HEAD')
+  hashes      = os.popen('git-rev-list HEAD -- %s'%fn).readlines() # GET ALL REVISIONS
+  date_author = os.popen('git-log --format="%%ad %%cn" --date=short %s'%fn).readlines() # GET REVISION INFO  
+  assert len(hashes)==len(date_author), ('mismatch between output of git-rev-list and git-log', hashes, date_author)
   
-  # initial version
-  ALL_LINES=[]
-  for line in get_initial_version(revs[-1],fn):
+  revs = []
+  for hash, date_au in zip(hashes,date_author):
+    x = struct()
+    x.hash = hash.strip()
+    x.date, x.author = date_au.split()
+    revs.append(x)
+    
+  #max_author_len = max([len(x.author) for x in revs])
+  #forced_author_len = min(8,max_author_len)
+  forced_author_len = 8
+  for x in revs:
+    if len(x.author) > forced_author_len:
+      x.author = x.author[:forced_author_len-1]+'.'
+    else:
+      x.author = x.author.center(forced_author_len)
+  
+  ALL_LINES=[]                        # INITIAL VERSION
+  for line in get_initial_version(revs[-1].hash,fn):
     x = struct()
     x.text    = line
-    x.begrev  = revs[-1]
+    x.begrev  = len(revs)-1
     x.endrev  = None
     ALL_LINES.append(x)  
   
   if V:
-    print_so_far(ALL_LINES)
+    print_so_far(ALL_LINES,revs)
   
   # process all the revisions
   origL, del_N, newL, add_N = 0,0,0,0
   for r in range(len(revs)-1,0,-1):
     
-    cmd = 'git-diff -U0 %s %s %s'%(revs[r],revs[r-1],fn)
+    cmd = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
     
     if V:
       print '[cmd]',cmd
@@ -122,7 +135,7 @@ def main():
           #if V: 
           #  print 'DEL origL=%d del_N=%d all_index=%d text=%r'%(origL,del_N,all_index,ALL_LINES[all_index].text)
               
-          ALL_LINES[all_index].endrev = revs[r-1]
+          ALL_LINES[all_index].endrev = r-1
           
           del_N -= 1
           if del_N == 0:
@@ -138,7 +151,7 @@ def main():
                       
           x = struct()
           x.text = line[1:]
-          x.begrev = revs[r-1]
+          x.begrev = r-1
           x.endrev = None
           
           ALL_LINES.insert(all_index, x)
@@ -152,9 +165,9 @@ def main():
         
     if V:
       print
-      print_so_far(ALL_LINES)
+      print_so_far(ALL_LINES,revs)
       
-  print_so_far(ALL_LINES)
+  print_so_far(ALL_LINES,revs)
   
 if __name__=='__main__':
   main()
