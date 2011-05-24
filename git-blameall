@@ -23,6 +23,8 @@ def get_initial_version(first_rev,fn):
   lines = []
   file_started_FL = False
   for line in os.popen('git-show %s %s'%(first_rev,fn)):
+    if line=='\ No newline at end of file\n':
+        continue
     if file_started_FL:
       assert line[0]=='+',("don't recognize format",line)
       lines.append(line[1:]) # take out the leading '+'
@@ -59,7 +61,9 @@ def print_so_far(ALL_LINES,revs):
   for line in ALL_LINES:
     beg = revs[line.begrev]
     end = revs[line.endrev] if line.endrev is not None else head_rev
-    print '%s %s %s %s %s %s:'%(beg.hash[:8],end.hash[:8],beg.date,end.date,beg.author,end.author),line.text,
+    #print '%s %s %s %s %s %s:'%(beg.hash[:8],end.hash[:8],beg.date,end.date,beg.author,end.author),line.text,
+    #print '(%s %s %s)(%s %s %s)'%(beg.hash[:8],beg.date,beg.author,end.hash[:8],end.date,end.author),line.text,
+    print '%s (%s %s) %s (%s %s)'%(beg.hash[:8],beg.author,beg.date,end.hash[:8],end.author,end.date),line.text,
   print 
     
 def main():
@@ -75,17 +79,20 @@ def main():
   for hash, date_au in zip(hashes,date_author):
     x = struct()
     x.hash = hash.strip()
-    x.date, x.author = date_au.split()
+    x.date, x.author = date_au.split(' ',1)
+    x.author = x.author.strip()
     revs.append(x)
     
   #max_author_len = max([len(x.author) for x in revs])
   #forced_author_len = min(8,max_author_len)
+  
   forced_author_len = 8
   for x in revs:
     if len(x.author) > forced_author_len:
       x.author = x.author[:forced_author_len-1]+'.'
     else:
-      x.author = x.author.center(forced_author_len)
+      #x.author = x.author.center(forced_author_len)
+      x.author = x.author.ljust(forced_author_len)
   
   ALL_LINES=[]                        # INITIAL VERSION
   for line in get_initial_version(revs[-1].hash,fn):
@@ -113,6 +120,9 @@ def main():
         if line_no<4:                 # SKIP OVER HEADER
           continue
          
+        if line=='\ No newline at end of file\n':
+            continue
+            
         if V: 
           print '[line]',repr(line)
         
