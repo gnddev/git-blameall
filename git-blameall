@@ -33,24 +33,18 @@ def get_initial_version(first_rev,fn):
         file_started_FL=True
   return lines
   
-def find_index(ALL_LINES,L,ignore_begrev=None):
+def find_index(ALL_LINES,L,current_rev=None):
   i=0
-  FL=0
-  if L==81: FL=1
   while L:
-    if FL: print 'Now',i,len(ALL_LINES),L,'b',ALL_LINES[i].begrev,'e',ALL_LINES[i].endrev,repr(ALL_LINES[i].text)
     if i==len(ALL_LINES):               # appending to the end
       return i
     if ALL_LINES[i].endrev == None: # this line is still alive
-      if ALL_LINES[i].begrev==ignore_begrev: # this line was inserted during the current revision, doesn't count
+      if ALL_LINES[i].begrev==current_rev: # this line was inserted during the current revision, doesn't count
         pass
       else:
         L-=1 # count the line
-    elif ALL_LINES[i].endrev == ignore_begrev: # still count the line, it was erased during the current revision
+    elif ALL_LINES[i].endrev == current_rev: # still count the line, it was erased during the current revision
       L-=1
-    #if ALL_LINES[i].begrev<>ignore_begrev and  ALL_LINES[i].endrev==None:       # line that has not been deleted
-    #  # ignore_begrev is used so we skip lines that have been inserted in the current revision
-    #  L-=1
     i+=1
   # ffwd through deleted lines
   while i<len(ALL_LINES) and ALL_LINES[i].endrev<>None:
@@ -66,7 +60,8 @@ def find_next_alive(ALL_LINES,i):
 
 def print_so_far(ALL_LINES,revs):
   head_rev = struct()
-  head_rev.hash = '  HEAD  '
+  #head_rev.hash = '  HEAD  '
+  head_rev.hash = '        '
   head_rev.date = '          '
   head_rev.author = '        '
   i=0
@@ -81,11 +76,15 @@ def print_so_far(ALL_LINES,revs):
     #print '%s %s %s %s %s %s:'%(beg.hash[:8],end.hash[:8],beg.date,end.date,beg.author,end.author),line.text,
     #print '(%s %s %s)(%s %s %s)'%(beg.hash[:8],beg.date,beg.author,end.hash[:8],end.date,end.author),line.text,
     #print '%s (%s %s) %s (%s %s)'%(beg.hash[:8],beg.author,beg.date,end.hash[:8],end.author,end.date),line.text,
-    print '%s (%s %s) %s (%s %s)'%(beg.hash[:8],beg.author,beg.date,end.hash[:8],end.author,end.date),line.text,
+    #print '%s (%s %s) %s (%s %s)'%(beg.hash[:8],beg.author,beg.date,end.hash[:8],end.author,end.date),line.text,
+    if line.endrev is not None:
+      print '-%s (%s %s) +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text,
+    else:
+      print ' %s  %s %s  +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text,
   print 
     
 def main():
-  V=1
+  V=0
   
   fn = sys.argv[1]
   
@@ -156,15 +155,15 @@ def main():
           assert line.startswith('-'),line
           
           if all_index is None:       # find index in ALL_LINES for origL
-            all_index = find_index(ALL_LINES, origL-1, ignore_begrev=r-1)
+            all_index = find_index(ALL_LINES, origL-1, current_rev=r-1)
           else:
             all_index = find_next_alive(ALL_LINES, all_index)
            
           #if V: 
           #  print 'DEL origL=%d del_N=%d all_index=%d text=%r'%(origL,del_N,all_index,ALL_LINES[all_index].text)
               
-          #assert ALL_LINES[all_index].text == line[1:], \
-          #  ("diff processing screwed up, marking the wrong deletion line",ALL_LINES[all_index].text,line,all_index)
+          assert ALL_LINES[all_index].text == line[1:], \
+            ("diff processing screwed up, marking the wrong deletion line",ALL_LINES[all_index].text,line,all_index)
           ALL_LINES[all_index].endrev = r-1
           
           del_N -= 1
