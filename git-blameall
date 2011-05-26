@@ -125,18 +125,28 @@ def main():
   # process all the revisions
   origL, del_N, newL, add_N = 0,0,0,0
   for r in range(len(revs)-1,0,-1):
+    sys.stdout.write('\r')
+    sys.stdout.flush()
+    print 'Processing revisions: (%d/%d) %s' % (len(revs)-r,len(revs)-1,revs[r-1].date),
     
     cmd = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
     
     if V:
       print '[cmd]',cmd
       print
-    
+
+    in_header_FL = True
     for line_no,line in enumerate(os.popen(cmd)):
     
-        if line_no<4:                 # SKIP OVER HEADER
-          continue
-         
+        #if line_no<4:                 # SKIP OVER HEADER
+        #  continue
+
+        if in_header_FL:              # SKIP OVER HEADER
+            if line.startswith('@@'): # we hit our first chunk
+                in_header_FL = False
+            else:
+                continue
+            
         if line=='\ No newline at end of file\n':
             continue
             
@@ -190,12 +200,13 @@ def main():
             all_index = None
           
         else:
-          assert 0, "shouldn't reach here unless misparsed diff output"
+          assert 0, ("shouldn't reach here unless misparsed diff output",line)
         
     if V:
       print
       print_so_far(ALL_LINES,revs)
-      
+  
+  print 
   print_so_far(ALL_LINES,revs)
   
 if __name__=='__main__':
