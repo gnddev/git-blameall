@@ -4,6 +4,7 @@ import sys
 import os
 import string
 import re
+import getopt
 
 Chunk_Header_Pat = re.compile('@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@')
 
@@ -81,15 +82,51 @@ def print_so_far(ALL_LINES,revs):
       print '-%s (%s %s) +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text,
     else:
       print ' %s  %s %s  +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text,
-  print 
+  
+UsageString="""\
+usage: git-blameall [options] file
+
+    -h, --help            Show this help info and exit
+    -q                    Quiet, do not show progress information (Default: off)
+"""
+
+def usage():
+  print UsageString
+  sys.exit(1)
     
 def main():
-  V=0
+
+  if len(sys.argv)==1:
+    usage()
   
-  fn = sys.argv[1]
+  # PROCESS COMMAND LINE ARGUMENTS
+  Flags, Args = getopt.getopt(sys.argv[1:], 'hq', ['help','debug'])
+  Flags = dict(Flags)
+  #print Flags, Args
+  if '-h' in Flags or '--help' in Flags:
+    usage()
+  Quiet = '-q' in Flags
+  V = '--debug' in Flags
+  assert len(Args)==1, ("Expecting only one file",Args)
+  fn = Args[0]
   
-  hashes      = os.popen('git-rev-list HEAD -- %s'%fn).readlines() # GET ALL REVISIONS
-  date_author = os.popen('git-log --format="%%ad %%cn" --date=short %s'%fn).readlines() # GET REVISION INFO  
+  # GET ALL REVISIONS
+  cmd         = 'git-rev-list HEAD -- %s'%fn
+  pipe        = os.popen(cmd)
+  hashes      = pipe.readlines()
+
+  assert not pipe.close(), ('Command errored',cmd)
+  
+  if not Quiet:
+    print '%d revisions'%(len(hashes)-1)
+    
+  # GET REVISION INFO
+  cmd         = 'git-log --format="%%ad %%cn" --date=short %s'%fn
+  pipe        = os.popen(cmd)
+  date_author = pipe.readlines()
+
+  assert not pipe.close(), ('Command errored',cmd)
+
   assert len(hashes)==len(date_author), ('mismatch between output of git-rev-list and git-log', hashes, date_author)
   
   revs = []
@@ -99,10 +136,10 @@ def main():
     x.date, x.author = date_au.split(' ',1)
     x.author = x.author.strip()
     revs.append(x)
-    
-  #max_author_len = max([len(x.author) for x in revs])
-  #forced_author_len = min(8,max_author_len)
   
+  if not Quiet:
+    print '%s --- %s'%(revs[-1].date,revs[0].date)
+    
   forced_author_len = 8
   for x in revs:
     if len(x.author) > forced_author_len:
@@ -125,21 +162,21 @@ def main():
   # process all the revisions
   origL, del_N, newL, add_N = 0,0,0,0
   for r in range(len(revs)-1,0,-1):
-    sys.stdout.write('\r')
-    sys.stdout.flush()
-    print 'Processing revisions: (%d/%d) %s' % (len(revs)-r,len(revs)-1,revs[r-1].date),
+  
+    if not Quiet:
+      sys.stdout.write('\r')
+      sys.stdout.flush()
+      print 'Processing revision: (%d/%d) %s' % (len(revs)-r,len(revs)-1,revs[r-1].date),
     
-    cmd = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
+    cmd  = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
+    pipe = os.popen(cmd)
     
     if V:
       print '[cmd]',cmd
       print
 
     in_header_FL = True
-    for line_no,line in enumerate(os.popen(cmd)):
-    
-        #if line_no<4:                 # SKIP OVER HEADER
-        #  continue
+    for line in pipe:
 
         if in_header_FL:              # SKIP OVER HEADER
             if line.startswith('@@'): # we hit our first chunk
@@ -202,11 +239,12 @@ def main():
         else:
           assert 0, ("shouldn't reach here unless misparsed diff output",line)
         
+    assert not pipe.close(), ('Command errored',cmd)
+    
     if V:
       print
       print_so_far(ALL_LINES,revs)
-  
-  print 
+      
   print_so_far(ALL_LINES,revs)
   
 if __name__=='__main__':
