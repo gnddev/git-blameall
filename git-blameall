@@ -6,6 +6,8 @@ import string
 import re
 import getopt
 
+VERSION = '0.1'
+
 Chunk_Header_Pat = re.compile('@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@')
 
 class struct:
@@ -88,6 +90,7 @@ usage: git-blameall [options] file
 
     -h, --help            Show this help info and exit
     -q                    Quiet, do not show progress information (Default: off)
+    -v, --version         Show version information
 """
 
 def usage():
@@ -101,11 +104,14 @@ def main():
   
   # PROCESS COMMAND LINE ARGUMENTS
   if 1:
-    Flags, Args = getopt.getopt(sys.argv[1:], 'hq', ['help','debug'])
+    Flags, Args = getopt.getopt(sys.argv[1:], 'hqv', ['help','debug', 'version'])
     Flags = dict(Flags)
     #print Flags, Args
     if '-h' in Flags or '--help' in Flags:
       usage()
+    if '-v' in Flags or '--version' in Flags:
+      print VERSION
+      sys.exit()
     Quiet = '-q' in Flags
     V = '--debug' in Flags
     assert len(Args)==1, ("Expecting only one file",Args)
