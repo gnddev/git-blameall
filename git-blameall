@@ -120,6 +120,8 @@ def main():
   # GET ALL REVISIONS
   if 1:
     cmd         = 'git-rev-list HEAD -- %s'%fn
+    if V:
+      print '[cmd]',cmd
     pipe        = os.popen(cmd)
     hashes      = pipe.readlines()
 
@@ -131,6 +133,8 @@ def main():
   # GET REVISION INFO
   if 1:
     cmd         = 'git-log --format="%%ad %%cn" --date=short %s'%fn
+    if V:
+      print '[cmd]',cmd
     pipe        = os.popen(cmd)
     date_author = pipe.readlines()
 
@@ -197,7 +201,7 @@ def main():
             continue
             
         if V: 
-          print '[line]',repr(line)
+          print '[line]',repr(line),'add_N=%d del_N=%d'%(add_N,del_N)
         
         if line.startswith('@@'):     # RECEIVED A NEW CHUNK!
         
@@ -246,14 +250,22 @@ def main():
             all_index = None
           
         else:
-          assert 0, ("shouldn't reach here unless misparsed diff output",line)
+          if line.startswith('diff'):
+            # This file was deleted, and then recreated, in this situation
+            # we may get several "diff" blocks out of a single git-diff command
+            # start processing the new block
+            in_header_FL = True
+          else:
+            assert 0, ("shouldn't reach here unless misparsed diff output",line)
         
     assert not pipe.close(), ('Command errored',cmd)
     
     if V:
       print
       print_so_far(ALL_LINES,revs)
-      
+  
+  if not Quiet:
+    print
   print_so_far(ALL_LINES,revs)
   
 if __name__=='__main__':
