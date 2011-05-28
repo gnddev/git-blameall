@@ -100,34 +100,37 @@ def main():
     usage()
   
   # PROCESS COMMAND LINE ARGUMENTS
-  Flags, Args = getopt.getopt(sys.argv[1:], 'hq', ['help','debug'])
-  Flags = dict(Flags)
-  #print Flags, Args
-  if '-h' in Flags or '--help' in Flags:
-    usage()
-  Quiet = '-q' in Flags
-  V = '--debug' in Flags
-  assert len(Args)==1, ("Expecting only one file",Args)
-  fn = Args[0]
+  if 1:
+    Flags, Args = getopt.getopt(sys.argv[1:], 'hq', ['help','debug'])
+    Flags = dict(Flags)
+    #print Flags, Args
+    if '-h' in Flags or '--help' in Flags:
+      usage()
+    Quiet = '-q' in Flags
+    V = '--debug' in Flags
+    assert len(Args)==1, ("Expecting only one file",Args)
+    fn = Args[0]
   
   # GET ALL REVISIONS
-  cmd         = 'git-rev-list HEAD -- %s'%fn
-  pipe        = os.popen(cmd)
-  hashes      = pipe.readlines()
+  if 1:
+    cmd         = 'git-rev-list HEAD -- %s'%fn
+    pipe        = os.popen(cmd)
+    hashes      = pipe.readlines()
 
-  assert not pipe.close(), ('Command errored',cmd)
-  
-  if not Quiet:
-    print '%d revisions'%(len(hashes)-1)
+    assert not pipe.close(), ('Command errored',cmd)
+    
+    if not Quiet:
+      print '%d revisions'%(len(hashes))
     
   # GET REVISION INFO
-  cmd         = 'git-log --format="%%ad %%cn" --date=short %s'%fn
-  pipe        = os.popen(cmd)
-  date_author = pipe.readlines()
+  if 1:
+    cmd         = 'git-log --format="%%ad %%cn" --date=short %s'%fn
+    pipe        = os.popen(cmd)
+    date_author = pipe.readlines()
 
-  assert not pipe.close(), ('Command errored',cmd)
+    assert not pipe.close(), ('Command errored',cmd)
 
-  assert len(hashes)==len(date_author), ('mismatch between output of git-rev-list and git-log', hashes, date_author)
+    assert len(hashes)==len(date_author), ('mismatch between output of git-rev-list and git-log', hashes, date_author)
   
   revs = []
   for hash, date_au in zip(hashes,date_author):
@@ -166,7 +169,7 @@ def main():
     if not Quiet:
       sys.stdout.write('\r')
       sys.stdout.flush()
-      print 'Processing revision: (%d/%d) %s' % (len(revs)-r,len(revs)-1,revs[r-1].date),
+      print 'Processing revision: (%d/%d) %s' % (len(revs)-r+1,len(revs),revs[r-1].date),
     
     cmd  = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
     pipe = os.popen(cmd)
