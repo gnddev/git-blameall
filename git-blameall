@@ -22,7 +22,7 @@ import string
 import re
 import getopt
 
-VERSION = '0.1'
+VERSION = '0.2'
 
 Chunk_Header_Pat = re.compile('@@ -([0-9]+)(?:,([0-9]+))? \+([0-9]+)(?:,([0-9]+))? @@')
 
