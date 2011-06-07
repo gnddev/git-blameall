@@ -1,3 +1,5 @@
+http://1dan.org/git-blameall
+
 This is a tool similar to git-blame, but it shows every line that was ever in the file,
 along with information about when it was added or deleted. 
 
