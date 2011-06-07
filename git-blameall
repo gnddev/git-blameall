@@ -144,7 +144,7 @@ def main():
     assert not pipe.close(), ('Command errored',cmd)
     
     if not Quiet:
-      print '%d revisions'%(len(hashes))
+      sys.stderr.write('%d revisions\n'%(len(hashes)))
     
   # GET REVISION INFO
   if 1:
@@ -167,7 +167,7 @@ def main():
     revs.append(x)
   
   if not Quiet:
-    print '%s --- %s'%(revs[-1].date,revs[0].date)
+    sys.stderr.write('%s --- %s\n'%(revs[-1].date,revs[0].date))
     
   forced_author_len = 8
   for x in revs:
@@ -193,9 +193,8 @@ def main():
   for r in range(len(revs)-1,0,-1):
   
     if not Quiet:
-      sys.stdout.write('\r')
-      sys.stdout.flush()
-      print 'Processing revision: (%d/%d) %s' % (len(revs)-r+1,len(revs),revs[r-1].date),
+      sys.stderr.write('\r')
+      sys.stderr.write('Processing revision: (%d/%d) %s' % (len(revs)-r+1,len(revs),revs[r-1].date))
     
     cmd  = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
     pipe = os.popen(cmd)
@@ -281,7 +280,7 @@ def main():
       print_so_far(ALL_LINES,revs)
   
   if not Quiet:
-    print
+    sys.stderr.write('\n')
   print_so_far(ALL_LINES,revs)
   
 if __name__=='__main__':
