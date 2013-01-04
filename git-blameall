@@ -41,7 +41,7 @@ def parse_chunk_header(s):
 def get_initial_version(first_rev,fn):
   lines = []
   file_started_FL = False
-  for line in os.popen('git-show %s %s'%(first_rev,fn)):
+  for line in os.popen('git show %s %s'%(first_rev,fn)):
     if line=='\ No newline at end of file\n':
         continue
     if file_started_FL:
@@ -135,7 +135,7 @@ def main():
   
   # GET ALL REVISIONS
   if 1:
-    cmd         = 'git-rev-list HEAD -- %s'%fn
+    cmd         = 'git rev-list HEAD -- %s'%fn
     if V:
       print '[cmd]',cmd
     pipe        = os.popen(cmd)
@@ -148,7 +148,7 @@ def main():
     
   # GET REVISION INFO
   if 1:
-    cmd         = 'git-log --format="%%ad %%cn" --date=short %s'%fn
+    cmd         = 'git log --format="%%ad %%cn" --date=short %s'%fn
     if V:
       print '[cmd]',cmd
     pipe        = os.popen(cmd)
@@ -156,7 +156,7 @@ def main():
 
     assert not pipe.close(), ('Command errored',cmd)
 
-    assert len(hashes)==len(date_author), ('mismatch between output of git-rev-list and git-log', hashes, date_author)
+    assert len(hashes)==len(date_author), ('mismatch between output of "git rev-list" and "git log"', hashes, date_author)
   
   revs = []
   for hash, date_au in zip(hashes,date_author):
@@ -196,7 +196,7 @@ def main():
       sys.stderr.write('\r')
       sys.stderr.write('Processing revision: (%d/%d) %s' % (len(revs)-r+1,len(revs),revs[r-1].date))
     
-    cmd  = 'git-diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
+    cmd  = 'git diff -U0 %s %s %s'%(revs[r].hash,revs[r-1].hash,fn)
     pipe = os.popen(cmd)
     
     if V:
