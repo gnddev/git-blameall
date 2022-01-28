@@ -36,7 +36,7 @@ def parse_chunk_header(s):
   if add_N is None:
     add_N = 1
     
-  return map(int,(origL, del_N, newL, add_N))
+  return list(map(int,(origL, del_N, newL, add_N)))
 
 def get_initial_version(first_rev,fn):
   lines = []
@@ -66,7 +66,7 @@ def find_index(ALL_LINES,L,current_rev=None):
       L-=1
     i+=1
   # ffwd through deleted lines
-  while i<len(ALL_LINES) and ALL_LINES[i].endrev<>None:
+  while i<len(ALL_LINES) and ALL_LINES[i].endrev!=None:
     i+=1
   return i
   
@@ -97,9 +97,9 @@ def print_so_far(ALL_LINES,revs):
     #print '%s (%s %s) %s (%s %s)'%(beg.hash[:8],beg.author,beg.date,end.hash[:8],end.author,end.date),line.text,
     #print '%s (%s %s) %s (%s %s)'%(beg.hash[:8],beg.author,beg.date,end.hash[:8],end.author,end.date),line.text,
     if line.endrev is not None:
-      print '-%s (%s %s) +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text,
+      print('-%s (%s %s) +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text, end=' ')
     else:
-      print ' %s  %s %s  +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text,
+      print(' %s  %s %s  +%s (%s %s)'%(end.hash[:8],end.author,end.date,beg.hash[:8],beg.author,beg.date),line.text, end=' ')
   
 UsageString="""\
 usage: git-blameall [options] file
@@ -110,7 +110,7 @@ usage: git-blameall [options] file
 """
 
 def usage():
-  print UsageString
+  print(UsageString)
   sys.exit(1)
     
 def main():
@@ -126,7 +126,7 @@ def main():
     if '-h' in Flags or '--help' in Flags:
       usage()
     if '-v' in Flags or '--version' in Flags:
-      print VERSION
+      print(VERSION)
       sys.exit()
     Quiet = '-q' in Flags
     V = '--debug' in Flags
@@ -137,7 +137,7 @@ def main():
   if 1:
     cmd         = 'git rev-list HEAD -- %s'%fn
     if V:
-      print '[cmd]',cmd
+      print('[cmd]',cmd)
     pipe        = os.popen(cmd)
     hashes      = pipe.readlines()
 
@@ -150,7 +150,7 @@ def main():
   if 1:
     cmd         = 'git log --format="%%ad %%cn" --date=short %s'%fn
     if V:
-      print '[cmd]',cmd
+      print('[cmd]',cmd)
     pipe        = os.popen(cmd)
     date_author = pipe.readlines()
 
@@ -200,8 +200,8 @@ def main():
     pipe = os.popen(cmd)
     
     if V:
-      print '[cmd]',cmd
-      print
+      print('[cmd]',cmd)
+      print()
 
     in_header_FL = True
     for line in pipe:
@@ -216,14 +216,14 @@ def main():
             continue
             
         if V: 
-          print '[line]',repr(line),'add_N=%d del_N=%d'%(add_N,del_N)
+          print('[line]',repr(line),'add_N=%d del_N=%d'%(add_N,del_N))
         
         if line.startswith('@@'):     # RECEIVED A NEW CHUNK!
         
           origL, del_N, newL, add_N = parse_chunk_header(line)
           all_index = None
           if V:
-            print 'chunk',origL,del_N,newL,add_N
+            print('chunk',origL,del_N,newL,add_N)
           
         elif del_N:                   # PROCESSING DELETED LINES
         
@@ -276,7 +276,7 @@ def main():
     assert not pipe.close(), ('Command errored',cmd)
     
     if V:
-      print
+      print()
       print_so_far(ALL_LINES,revs)
   
   if not Quiet:
